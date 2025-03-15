@@ -98,68 +98,56 @@ const ChatInterface = () => {
     try {
       let data;
       if (audioBlob) {
-        // Speech-to-text request
-        const form = new FormData();
-        form.append("with_timestamps", "true");
-        form.append("file", audioBlob, "recording.wav");
-        form.append("model", "saarika:v2");
-        form.append("language_code", "kn-IN");
-        form.append("num_speakers", "1");
+          const form = new FormData();
+          form.append("with_diarization", "false");
+          form.append("file", audioBlob, "recording.wav");
+          form.append("model", "saaras:flash");
+          form.append("num_speakers", "1");
 
-        const response = await fetch("https://api.sarvam.ai/speech-to-text", {
-          method: "POST",
-          headers: {
-            "api-subscription-key": "7c801e4f-4cf6-4500-bf3d-e44d5e00af0e",
-          },
-          body: form,
-        });
-        data = await response.json();
+          const response = await fetch('https://api.sarvam.ai/speech-to-text-translate', {
+              method: "POST",
+              headers: {
+                  "api-subscription-key": "7c801e4f-4cf6-4500-bf3d-e44d5e00af0e",
+              },
+              body: form,
+          });
+          data = await response.json();
       } else {
-        // Translation request
-        const response = await fetch("https://api.sarvam.ai/translate", {
-          method: "POST",
-          headers: {
-            "api-subscription-key": "7c801e4f-4cf6-4500-bf3d-e44d5e00af0e",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            enable_preprocessing: false,
-            input: input,
-            source_language_code: "en-IN",
-            target_language_code: "kn-IN",
-            speaker_gender: "Male",
-            mode: "formal",
-            model: "mayura:v1",
-            output_script: "roman",
-            numerals_format: "international",
-          }),
-        });
-        data = await response.json();
+          const response = await fetch("https://api.sarvam.ai/translate", {
+              method: "POST",
+              headers: {
+                  "api-subscription-key": "7c801e4f-4cf6-4500-bf3d-e44d5e00af0e",
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                  input: inputText,
+                  source_language_code: "en-IN",
+                  target_language_code: "kn-IN",
+                  model: "mayura:v1",
+              }),
+          });
+          data = await response.json();
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.transcript || data.translated_text,
+      setMessages(prev => [...prev, {
+          text: data.transcript || data.translated_text,
+          isBot: true,
+          language: data.language_code,
           timestamp: new Date().toLocaleTimeString(),
-        },
-      ]);
+      }]);
+
     } catch (error) {
-      console.error(error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Error: Could not get response from API",
-          isError: true,
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      ]);
+        console.error(error);
+        setMessages(prev => [...prev, {
+            text: `Error: ${error.message}`,
+            isBot: true,
+            isError: true,
+            timestamp: new Date().toLocaleTimeString(),
+        }]);
     } finally {
-      setIsTyping(false);
-      setAudioBlob(null);
-      setAudioUrl("");
+        setIsTyping(false);
+        setAudioBlob(null);
+        setAudioUrl("");
     }
   };
 
