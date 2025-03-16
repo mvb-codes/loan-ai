@@ -1,9 +1,10 @@
-import { Bot, Mic, Send, User } from "lucide-react";
+import { Bot, Mic, Send, User, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { v4 as uuidv4 } from "uuid";
 import SpeechToTextToSpeech from "./chatv2";
+import Cookies from "js-cookie";
 
 export default function Speech_to_txt() {
   const [showVoiceUI, setShowVoiceUI] = useState(false);
@@ -16,7 +17,59 @@ export default function Speech_to_txt() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const messagesEndRef = useRef(null);
-  const voiceUIRef = useRef(null); // Ref for the SpeechToTextToSpeech component
+  const voiceUIRef = useRef(null);
+  const [ChatID, setChatID] = useState(uuidv4()); // Current ChatID
+  const [chatHistory, setChatHistory] = useState([]); // List of previous chats
+
+  // Load chat history from cookies when the component mounts
+  useEffect(() => {
+    const savedChatHistory = Cookies.get("chatHistory");
+    if (savedChatHistory) {
+      setChatHistory(JSON.parse(savedChatHistory));
+    }
+  }, []);
+
+  // Load messages for the current ChatID from cookies
+  useEffect(() => {
+    const savedMessages = Cookies.get(`chat_${ChatID}`);
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    } else {
+      setMessages([]); // Clear messages if no saved messages for this ChatID
+    }
+  }, [ChatID]);
+
+  // Save messages to cookies whenever they change
+  useEffect(() => {
+    Cookies.set(`chat_${ChatID}`, JSON.stringify(messages), { expires: 7 }); // Expires in 7 days
+  }, [messages, ChatID]);
+
+  // Save chat history to cookies whenever it changes
+  useEffect(() => {
+    Cookies.set("chatHistory", JSON.stringify(chatHistory), { expires: 7 }); // Expires in 7 days
+  }, [chatHistory]);
+
+  // Handle new chat
+  const handleNewChat = () => {
+    const newChatID = uuidv4(); // Generate a new ChatID
+    setChatID(newChatID); // Set the new ChatID
+    setMessages([]); // Clear messages
+
+    // Add the new chat to the chat history
+    setChatHistory((prev) => [
+      ...prev,
+      {
+        id: newChatID,
+        title: `Chat ${prev.length + 1}`, // Default title for the chat
+        timestamp: new Date().toLocaleString(),
+      },
+    ]);
+  };
+
+  // Handle loading a previous chat
+  const loadChat = (chatID) => {
+    setChatID(chatID); // Set the ChatID to load the chat
+  };
 
   // Recording handlers
   const startRecording = async () => {
@@ -51,8 +104,7 @@ export default function Speech_to_txt() {
     setIsRecording(false);
   };
 
-  const [ChatID, setChatID] = useState(uuidv4());
-
+  // Scroll to the bottom of the chat when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -76,6 +128,7 @@ export default function Speech_to_txt() {
     };
   }, [showVoiceUI]);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if ((!inputText.trim() && !audioBlob) || isTyping) return;
@@ -157,8 +210,36 @@ export default function Speech_to_txt() {
   };
 
   return (
-    <div className="h-[93vh] bg-[#0a0a0a] flex items-center justify-center p-4 ml-[5rem]">
-      <div className="w-full max-w-6xl bg-[#1a1a1a] rounded-xl shadow-lg flex flex-col h-[90vh]">
+    <div className="h-[93vh] bg-[#0a0a0a] flex mt-[2.5rem] w-[90%] ml-[5rem]">
+      {/* Sidebar for Chat History */}
+      <div className="w-64 bg-[#1a1a1a] border-r border-[#2a2a2a] flex flex-col rounded-lg">
+        <div className="p-4">
+          <button
+            onClick={handleNewChat}
+            className="w-full flex items-center justify-center p-2 bg-[#4285f4] text-white rounded-lg hover:bg-[#357abd] transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Chat
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-2">
+          {chatHistory.map((chat) => (
+            <div
+              key={chat.id}
+              onClick={() => loadChat(chat.id)}
+              className={`p-2 mb-2 rounded-lg text-[#ffffff] cursor-pointer hover:bg-[#2a2a2a] transition-colors ${
+                chat.id === ChatID ? "bg-[#357abd]" : "bg-[#1a1a1a]"
+              }`}
+            >
+              <div className="text-sm truncate">{chat.title}</div>
+              <div className="text-xs text-gray-400">{chat.timestamp}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Chat UI */}
+      <div className="flex-1 bg-[#1a1a1a] rounded-xl shadow-lg flex flex-col h-[93vh]">
         {/* Header */}
         <div className="p-4 bg-[#1a1a1a] rounded-t-xl border-b border-[#2a2a2a]">
           <div className="flex items-center space-x-2">
@@ -267,6 +348,7 @@ export default function Speech_to_txt() {
         </div>
       </div>
 
+      {/* Voice UI */}
       {showVoiceUI && (
         <div className="absolute inset-0 flex items-center justify-center bg-opacity-50">
           <div ref={voiceUIRef} className="w-[50%]">
