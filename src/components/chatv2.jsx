@@ -132,7 +132,7 @@ export default function SpeechToTextToSpeech() {
 
 	return (
 		<div className="container">
-			<h1>Voice Orb Translator</h1>
+			<h1></h1>
 
 			{/* Orb Container */}
 			<div className="orb-container">
@@ -181,8 +181,8 @@ export default function SpeechToTextToSpeech() {
 
 			<style jsx>{`
 				.container {
-					max-width: 100%;
-					min-height: 100vh;
+					max-width: 50%;
+					min-height: 50vh;
 					display: flex;
 					flex-direction: column;
 					align-items: center;
