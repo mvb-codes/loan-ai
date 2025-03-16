@@ -22,7 +22,8 @@
     "react-router-dom": "^6.22.1",
     "remark-gfm": "^4.0.1",
     "scroll-lock": "^2.1.5",
-    "shiki": "^1.29.2"
+    "shiki": "^1.29.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",
